@@ -1,8 +1,11 @@
 import { Feather } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   KeyboardTypeOptions,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +28,56 @@ const INPUT_HEIGHT = 40;
 const LABEL_FONT_SIZE = 16;
 const INPUT_FONT_SIZE = 16;
 const CODE_LENGTH_DEFAULT = 4;
+
+export type InputScreenProps = {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  scrollable?: boolean;
+  scrollContentContainerStyle?: ViewStyle | ViewStyle[];
+  keyboardVerticalOffset?: number;
+  bounces?: boolean;
+};
+
+export function InputScreen({
+  children,
+  style,
+  scrollable = false,
+  scrollContentContainerStyle,
+  keyboardVerticalOffset = 0,
+  bounces = false,
+}: InputScreenProps) {
+  const content = scrollable ? (
+    <ScrollView
+      bounces={bounces}
+      contentContainerStyle={scrollContentContainerStyle}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScrollView>
+  ) : (
+    children
+  );
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={keyboardVerticalOffset}
+      style={[inputScreenStyles.flex, style]}
+    >
+      {content}
+    </KeyboardAvoidingView>
+  );
+}
+
+/** @deprecated Use InputScreen */
+export const InputFieldForm = InputScreen;
+
+const inputScreenStyles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+});
 
 export type InputFieldVariant = 'default' | 'code' | 'select';
 
@@ -237,6 +290,15 @@ export function InputField({
   );
 }
 
+type InputFieldComponent = typeof InputField & {
+  Form: typeof InputScreen;
+  Screen: typeof InputScreen;
+};
+
+const InputFieldWithHelpers = InputField as InputFieldComponent;
+InputFieldWithHelpers.Form = InputScreen;
+InputFieldWithHelpers.Screen = InputScreen;
+
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'stretch',
@@ -323,4 +385,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default InputField;
+export default InputFieldWithHelpers;

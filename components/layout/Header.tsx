@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Platform,
@@ -19,6 +19,7 @@ const COLORS = {
   searchBackground: '#F2F3F2',
   searchPlaceholder: '#7C7C7C',
   icon: '#181725',
+  carrot: '#F9A826',
 } as const;
 
 const HEADER_HEIGHT = 57;
@@ -36,9 +37,11 @@ export type HeaderProps = {
   rightAction?: HeaderRightAction | React.ReactNode;
   onRightPress?: () => void;
   showSearch?: boolean;
+  searchBarOnly?: boolean;
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (text: string) => void;
+  onSearchClear?: () => void;
   onSearchSubmit?: () => void;
   showBorder?: boolean;
   containerStyle?: ViewStyle;
@@ -120,15 +123,55 @@ export function Header({
   rightAction,
   onRightPress,
   showSearch = false,
+  searchBarOnly = false,
   searchPlaceholder = 'Search Store',
   searchValue,
   onSearchChange,
+  onSearchClear,
   onSearchSubmit,
   showBorder = false,
   containerStyle,
   titleStyle,
 }: HeaderProps) {
   const insets = useSafeAreaInsets();
+  const showClearButton = Boolean(searchValue?.length);
+
+  const handleClearSearch = () => {
+    onSearchChange?.('');
+    onSearchClear?.();
+  };
+
+  const searchField = (
+    <View style={[styles.searchContainer, searchBarOnly && styles.searchContainerInline]}>
+      <Feather
+        color={COLORS.searchPlaceholder}
+        name="search"
+        size={18}
+        style={styles.searchIcon}
+      />
+      <TextInput
+        placeholder={searchPlaceholder}
+        placeholderTextColor={COLORS.searchPlaceholder}
+        returnKeyType="search"
+        style={styles.searchInput}
+        value={searchValue}
+        onChangeText={onSearchChange}
+        onSubmitEditing={onSearchSubmit}
+      />
+      {showClearButton ? (
+        <TouchableOpacity
+          accessibilityLabel="Clear search"
+          accessibilityRole="button"
+          activeOpacity={0.7}
+          hitSlop={8}
+          onPress={handleClearSearch}
+          style={styles.clearButton}
+        >
+          <Feather color={COLORS.searchPlaceholder} name="x" size={18} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
 
   return (
     <View
@@ -141,37 +184,28 @@ export function Header({
         containerStyle,
       ]}
     >
-      <View style={styles.headerRow}>
-        {renderLeftAction(leftAction, onLeftPress)}
-
-        <View pointerEvents="none" style={styles.titleContainer}>
-          <Text numberOfLines={1} style={[styles.title, titleStyle]}>
-            {title}
-          </Text>
+      {searchBarOnly ? (
+        <View style={styles.searchBarRow}>
+          <View style={styles.searchBarField}>{searchField}</View>
+          {renderRightAction(rightAction ?? 'filter', onRightPress)}
         </View>
+      ) : (
+        <>
+          <View style={styles.headerRow}>
+            {renderLeftAction(leftAction, onLeftPress)}
 
-        {renderRightAction(rightAction, onRightPress)}
-      </View>
+            <View pointerEvents="none" style={styles.titleContainer}>
+              <Text numberOfLines={1} style={[styles.title, titleStyle]}>
+                {title}
+              </Text>
+            </View>
 
-      {showSearch ? (
-        <View style={styles.searchContainer}>
-          <Feather
-            color={COLORS.searchPlaceholder}
-            name="search"
-            size={18}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            placeholder={searchPlaceholder}
-            placeholderTextColor={COLORS.searchPlaceholder}
-            returnKeyType="search"
-            style={styles.searchInput}
-            value={searchValue}
-            onChangeText={onSearchChange}
-            onSubmitEditing={onSearchSubmit}
-          />
-        </View>
-      ) : null}
+            {renderRightAction(rightAction, onRightPress)}
+          </View>
+
+          {showSearch ? searchField : null}
+        </>
+      )}
     </View>
   );
 }
@@ -232,6 +266,129 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: SEARCH_HEIGHT,
     marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  searchContainerInline: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  searchBarRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+    minHeight: SEARCH_HEIGHT,
+  },
+  searchBarField: {
+    flex: 1,
+  },
+  clearButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    color: COLORS.title,
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+});
+
+// --- HomeHeader ---
+
+export type HomeHeaderProps = {
+  location?: string;
+  searchValue?: string;
+  onSearchChange?: (text: string) => void;
+  onLocationPress?: () => void;
+  containerStyle?: ViewStyle;
+};
+
+const HOME_SEARCH_HEIGHT = 52;
+
+export function HomeHeader({
+  location = 'Dhaka, Banassree',
+  searchValue,
+  onSearchChange,
+  onLocationPress,
+  containerStyle,
+}: HomeHeaderProps) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={[
+        homeHeaderStyles.container,
+        { paddingTop: insets.top + 4 },
+        containerStyle,
+      ]}
+    >
+      <MaterialCommunityIcons color={COLORS.carrot} name="carrot" size={28} />
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        activeOpacity={0.7}
+        onPress={onLocationPress}
+        style={homeHeaderStyles.locationRow}
+      >
+        <Feather color={COLORS.searchPlaceholder} name="map-pin" size={16} />
+        <Text numberOfLines={1} style={homeHeaderStyles.locationText}>
+          {location}
+        </Text>
+        <Feather color={COLORS.searchPlaceholder} name="chevron-down" size={16} />
+      </TouchableOpacity>
+
+      <View style={homeHeaderStyles.searchContainer}>
+        <Feather
+          color={COLORS.searchPlaceholder}
+          name="search"
+          size={18}
+          style={homeHeaderStyles.searchIcon}
+        />
+        <TextInput
+          placeholder="Search Store"
+          placeholderTextColor={COLORS.searchPlaceholder}
+          returnKeyType="search"
+          style={homeHeaderStyles.searchInput}
+          value={searchValue}
+          onChangeText={onSearchChange}
+        />
+      </View>
+    </View>
+  );
+}
+
+const homeHeaderStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    paddingBottom: 16,
+    paddingHorizontal: HORIZONTAL_PADDING,
+  },
+  locationRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 8,
+  },
+  locationText: {
+    color: COLORS.title,
+    fontSize: 14,
+    fontWeight: '600',
+    maxWidth: 200,
+  },
+  searchContainer: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.searchBackground,
+    borderRadius: HOME_SEARCH_HEIGHT / 2,
+    flexDirection: 'row',
+    height: HOME_SEARCH_HEIGHT,
+    marginTop: 20,
     paddingHorizontal: 16,
   },
   searchIcon: {

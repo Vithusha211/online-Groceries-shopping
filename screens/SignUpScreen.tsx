@@ -2,9 +2,6 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import React, { useMemo, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -68,22 +65,16 @@ export function SignUpScreen({
         <View style={[styles.blob, styles.blobBottomRight]} />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
+      <InputField.Form
+        scrollable
+        scrollContentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: Math.max(insets.bottom, 24),
+            paddingTop: insets.top + 24,
+          },
+        ]}
       >
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingBottom: Math.max(insets.bottom, 24),
-              paddingTop: insets.top + 24,
-            },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <View style={styles.logoContainer}>
             <MaterialCommunityIcons color="#FA6E23" name="carrot" size={48} />
           </View>
@@ -151,8 +142,7 @@ export function SignUpScreen({
               </Text>
             </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </InputField.Form>
     </View>
   );
 }
@@ -197,9 +187,6 @@ const styles = StyleSheet.create({
     height: 160,
     right: -50,
     width: 160,
-  },
-  keyboardView: {
-    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
