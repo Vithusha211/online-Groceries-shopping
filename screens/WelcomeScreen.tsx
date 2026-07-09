@@ -28,7 +28,7 @@ export type WelcomeScreenProps = {
 
 export function WelcomeScreen({
   onGetStarted,
-  backgroundSource = require('../../assets/welcome-bg.jpg'),
+  backgroundSource = require('../assets/welcome-bg.jpg'),
   containerStyle,
 }: WelcomeScreenProps) {
   const insets = useSafeAreaInsets();

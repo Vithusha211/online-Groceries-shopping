@@ -311,7 +311,7 @@ export type HomeHeaderProps = {
 const HOME_SEARCH_HEIGHT = 52;
 
 export function HomeHeader({
-  location = 'Dhaka, Banassree',
+  location = 'Dhaka, Banassre',
   searchValue,
   onSearchChange,
   onLocationPress,

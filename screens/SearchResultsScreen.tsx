@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import { ProductCard } from '../components/layout/Cards';
-import Footer, { FooterTab } from '../components/layout/Footer';
 import Header from '../components/layout/Header';
 import InputField from '../components/layout/InputField';
 import { searchProducts } from '../constants/products';
@@ -24,9 +23,7 @@ const cardWidth = (screenWidth - HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
 
 export type SearchResultsScreenProps = {
   query: string;
-  activeTab?: FooterTab;
   onQueryChange?: (query: string) => void;
-  onTabPress?: (tab: FooterTab) => void;
   onFilterPress?: () => void;
   onProductPress?: (productId: string) => void;
   containerStyle?: ViewStyle;
@@ -34,9 +31,7 @@ export type SearchResultsScreenProps = {
 
 export function SearchResultsScreen({
   query,
-  activeTab = 'explore',
   onQueryChange,
-  onTabPress,
   onFilterPress,
   onProductPress,
   containerStyle,
@@ -82,8 +77,6 @@ export function SearchResultsScreen({
             ))}
           </View>
         </ScrollView>
-
-        <Footer activeTab={activeTab} onTabPress={onTabPress ?? (() => {})} />
       </InputField.Screen>
     </View>
   );

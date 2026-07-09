@@ -10,15 +10,12 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import {
-  CategoryCard,
-  ExploreCategoryCard,
-  ProductCard,
-} from '../components/layout/Cards';
-import Footer, { FooterTab } from '../components/layout/Footer';
+import { CategoryCard, ProductCard } from '../components/layout/Cards';
 import { HomeHeader } from '../components/layout/Header';
 import InputField from '../components/layout/InputField';
 import PromoBanner from '../components/layout/PromoBanner';
+import { useToast } from '../components/layout/Toast';
+import { TOAST_MESSAGES } from '../constants/toastMessages';
 import {
   BEST_SELLING,
   EXCLUSIVE_OFFERS,
@@ -64,8 +61,6 @@ const GROCERY_CATEGORIES: CategoryItem[] = [
 
 export type HomeScreenProps = {
   location?: string;
-  activeTab?: FooterTab;
-  onTabPress?: (tab: FooterTab) => void;
   onProductPress?: (productId: string) => void;
   containerStyle?: ViewStyle;
 };
@@ -121,15 +116,18 @@ function ProductGrid({
 }
 
 export function HomeScreen({
-  location = 'Dhaka, Banassree',
-  activeTab = 'shop',
-  onTabPress,
+  location = 'Dhaka, Banassre',
   onProductPress,
   containerStyle,
 }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const { showSuccess } = useToast();
 
   const contentBottomPadding = useMemo(() => 24, []);
+
+  const handleAddToCart = () => {
+    showSuccess(TOAST_MESSAGES.addToCart);
+  };
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -156,6 +154,7 @@ export function HomeScreen({
           <View style={styles.section}>
             <SectionHeader title="Exclusive Offer" />
             <ProductGrid
+              onAdd={handleAddToCart}
               onProductPress={onProductPress}
               products={EXCLUSIVE_OFFERS}
             />
@@ -164,6 +163,7 @@ export function HomeScreen({
           <View style={styles.section}>
             <SectionHeader title="Best Selling" />
             <ProductGrid
+              onAdd={handleAddToCart}
               onProductPress={onProductPress}
               products={BEST_SELLING}
             />
@@ -189,13 +189,12 @@ export function HomeScreen({
               ))}
             </ScrollView>
             <ProductGrid
+              onAdd={handleAddToCart}
               onProductPress={onProductPress}
               products={GROCERY_PRODUCTS}
             />
           </View>
         </ScrollView>
-
-        <Footer activeTab={activeTab} onTabPress={onTabPress ?? (() => {})} />
       </InputField.Screen>
     </View>
   );

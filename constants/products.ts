@@ -328,3 +328,29 @@ export const GROCERY_PRODUCTS: HomeProduct[] = [
     iconBackground: '#FFF4E8',
   },
 ];
+
+const FAVOURITE_PRODUCT_IDS = [
+  'sprite',
+  'diet-coke',
+  'apple-grape-juice',
+  'coca-cola',
+  'pepsi',
+] as const;
+
+const FAVOURITE_PRICE_OVERRIDES: Partial<Record<string, string>> = {
+  'apple-grape-juice': '$15.50',
+};
+
+export function getFavouriteProducts(): HomeProduct[] {
+  return FAVOURITE_PRODUCT_IDS.map((id) => {
+    const product = PRODUCT_DETAILS[id];
+    if (!product) {
+      return null;
+    }
+
+    return toHomeProduct({
+      ...product,
+      price: FAVOURITE_PRICE_OVERRIDES[id] ?? product.price,
+    });
+  }).filter((product): product is HomeProduct => Boolean(product));
+}

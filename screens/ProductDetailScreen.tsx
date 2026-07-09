@@ -19,6 +19,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../components/layout/Button';
 import Header from '../components/layout/Header';
 import { ProductQuantityStepper } from '../components/layout/Cards';
+import { useToast } from '../components/layout/Toast';
+import { TOAST_MESSAGES } from '../constants/toastMessages';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -178,6 +180,7 @@ export function ProductDetailScreen({
   containerStyle,
 }: ProductDetailScreenProps) {
   const insets = useSafeAreaInsets();
+  const { showSuccess } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [detailExpanded, setDetailExpanded] = useState(true);
@@ -197,7 +200,16 @@ export function ProductDetailScreen({
   };
 
   const handleAddToBasket = () => {
+    showSuccess(TOAST_MESSAGES.addToCart);
     onAddToBasket?.(product, quantity);
+  };
+
+  const handleToggleFavorite = () => {
+    setIsFavorite((current) => {
+      const next = !current;
+      showSuccess(next ? TOAST_MESSAGES.addFavorite : TOAST_MESSAGES.removeFavorite);
+      return next;
+    });
   };
 
   return (
@@ -268,7 +280,7 @@ export function ProductDetailScreen({
               accessibilityRole="button"
               activeOpacity={0.7}
               hitSlop={8}
-              onPress={() => setIsFavorite((current) => !current)}
+              onPress={handleToggleFavorite}
               style={styles.favoriteButton}
             >
               <Feather

@@ -12,6 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../components/layout/Button';
 import Header from '../components/layout/Header';
+import { useToast } from '../components/layout/Toast';
+import { TOAST_MESSAGES } from '../constants/toastMessages';
 import {
   DEFAULT_FILTER_STATE,
   FILTER_BRANDS,
@@ -112,6 +114,7 @@ export function FilterScreen({
   containerStyle,
 }: FilterScreenProps) {
   const insets = useSafeAreaInsets();
+  const { showSuccess } = useToast();
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
   const toggleCategory = (id: string) => {
@@ -133,6 +136,7 @@ export function FilterScreen({
   };
 
   const handleApply = () => {
+    showSuccess(TOAST_MESSAGES.filtersApplied);
     onApply?.(filters);
     onClose?.();
   };

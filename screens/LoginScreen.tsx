@@ -11,6 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../components/layout/Button';
 import InputField from '../components/layout/InputField';
+import { useToast } from '../components/layout/Toast';
+import { TOAST_MESSAGES } from '../constants/toastMessages';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -24,6 +26,7 @@ const COLORS = {
 } as const;
 
 const HORIZONTAL_PADDING = 25;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type LoginScreenProps = {
   onLogin?: (credentials: { email: string; password: string }) => void;
@@ -39,11 +42,22 @@ export function LoginScreen({
   containerStyle,
 }: LoginScreenProps) {
   const insets = useSafeAreaInsets();
+  const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    onLogin?.({ email, password });
+    const trimmedEmail = email.trim();
+    const isValid =
+      EMAIL_REGEX.test(trimmedEmail) && password.trim().length >= 4;
+
+    if (!isValid) {
+      showError(TOAST_MESSAGES.loginInvalid);
+      return;
+    }
+
+    showSuccess(TOAST_MESSAGES.loginSuccess);
+    onLogin?.({ email: trimmedEmail, password });
   };
 
   return (

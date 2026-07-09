@@ -1,0 +1,18 @@
+export const TOAST_MESSAGES = {
+  loginSuccess: 'Login successful',
+  loginInvalid: 'Invalid email or password',
+  signUpSuccess: 'Account created successfully',
+  signUpInvalid: 'Please fill all fields correctly',
+  addFavorite: 'Added to favourites',
+  removeFavorite: 'Removed from favourites',
+  addToCart: 'Added to cart',
+  addAllToCart: 'All items added to cart',
+  cardSaved: 'Card saved successfully',
+  cardInvalid: 'Unable to save card',
+  locationSaved: 'Location saved successfully',
+  locationInvalid: 'Please select your zone and area',
+  filtersApplied: 'Filters applied',
+  logoutSuccess: 'Logged out successfully',
+  promoApplied: 'Promo code applied',
+  deliverySelected: 'Delivery method selected',
+} as const;
