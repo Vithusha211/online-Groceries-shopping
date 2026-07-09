@@ -2,6 +2,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -11,6 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../components/layout/Button';
 import InputField from '../components/layout/InputField';
+import { useToast } from '../components/layout/Toast';
+import { TOAST_MESSAGES } from '../constants/toastMessages';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -23,15 +26,19 @@ const COLORS = {
   blobPink: 'rgba(255, 167, 215, 0.35)',
   blobBlue: 'rgba(147, 197, 253, 0.3)',
   blobPurple: 'rgba(196, 181, 253, 0.25)',
+  overlay: 'rgba(0, 0, 0, 0.4)',
+  sheet: '#FFFFFF',
+  border: '#E2E2E2',
+  primary: '#53B175',
 } as const;
 
 const HORIZONTAL_PADDING = 25;
 
+const ZONES = ['Banasree', 'Gulshan', 'Dhanmondi', 'Uttara', 'Mirpur'] as const;
+
 export type SelectLocationScreenProps = {
   onBack?: () => void;
   onSubmit?: (location: { zone: string; area: string }) => void;
-  onZonePress?: () => void;
-  onAreaPress?: () => void;
   containerStyle?: ViewStyle;
 };
 
@@ -56,16 +63,27 @@ function MapIllustration() {
 export function SelectLocationScreen({
   onBack,
   onSubmit,
-  onZonePress,
-  onAreaPress,
   containerStyle,
 }: SelectLocationScreenProps) {
   const insets = useSafeAreaInsets();
-  const [zone, setZone] = useState('Banasree');
+  const { showSuccess, showError } = useToast();
+  const [zone, setZone] = useState<string>(ZONES[0]);
   const [area, setArea] = useState('');
+  const [zonePickerVisible, setZonePickerVisible] = useState(false);
 
   const handleSubmit = () => {
-    onSubmit?.({ zone, area });
+    if (!area.trim()) {
+      showError(TOAST_MESSAGES.locationInvalid);
+      return;
+    }
+
+    showSuccess(TOAST_MESSAGES.locationSaved);
+    onSubmit?.({ zone, area: area.trim() });
+  };
+
+  const handleZoneSelect = (selectedZone: string) => {
+    setZone(selectedZone);
+    setZonePickerVisible(false);
   };
 
   return (
@@ -110,7 +128,7 @@ export function SelectLocationScreen({
         <View style={styles.form}>
           <InputField
             label="Your Zone"
-            onPress={onZonePress}
+            onPress={() => setZonePickerVisible(true)}
             value={zone}
             variant="select"
           />
@@ -118,10 +136,9 @@ export function SelectLocationScreen({
           <InputField
             containerStyle={styles.areaField}
             label="Your Area"
-            onPress={onAreaPress}
+            onChangeText={setArea}
             placeholder="Types of your area"
             value={area}
-            variant="select"
           />
 
           <Button
@@ -131,6 +148,45 @@ export function SelectLocationScreen({
           />
         </View>
       </InputField.Form>
+
+      <Modal
+        animationType="slide"
+        onRequestClose={() => setZonePickerVisible(false)}
+        transparent
+        visible={zonePickerVisible}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            onPress={() => setZonePickerVisible(false)}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <Text style={styles.modalTitle}>Select Your Zone</Text>
+            {ZONES.map((zoneOption) => {
+              const isSelected = zoneOption === zone;
+              return (
+                <Pressable
+                  key={zoneOption}
+                  onPress={() => handleZoneSelect(zoneOption)}
+                  style={[styles.zoneOption, isSelected && styles.zoneOptionSelected]}
+                >
+                  <Text
+                    style={[
+                      styles.zoneOptionText,
+                      isSelected && styles.zoneOptionTextSelected,
+                    ]}
+                  >
+                    {zoneOption}
+                  </Text>
+                  {isSelected ? (
+                    <Feather color={COLORS.primary} name="check" size={20} />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -243,6 +299,47 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 48,
+  },
+  modalOverlay: {
+    backgroundColor: COLORS.overlay,
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: COLORS.sheet,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 20,
+  },
+  modalTitle: {
+    color: COLORS.title,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  zoneOption: {
+    alignItems: 'center',
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+  },
+  zoneOptionSelected: {
+    backgroundColor: 'rgba(83, 177, 117, 0.08)',
+    borderRadius: 8,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+  },
+  zoneOptionText: {
+    color: COLORS.title,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  zoneOptionTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
 

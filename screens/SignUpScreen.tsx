@@ -10,6 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../components/layout/Button';
 import InputField from '../components/layout/InputField';
+import { useToast } from '../components/layout/Toast';
+import { TOAST_MESSAGES } from '../constants/toastMessages';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -44,6 +46,7 @@ export function SignUpScreen({
   containerStyle,
 }: SignUpScreenProps) {
   const insets = useSafeAreaInsets();
+  const { showSuccess, showError } = useToast();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,6 +54,15 @@ export function SignUpScreen({
   const isEmailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
 
   const handleSignUp = () => {
+    const isValid =
+      username.trim().length > 0 && isEmailValid && password.trim().length >= 4;
+
+    if (!isValid) {
+      showError(TOAST_MESSAGES.signUpInvalid);
+      return;
+    }
+
+    showSuccess(TOAST_MESSAGES.signUpSuccess);
     onSignUp?.({ username, email, password });
   };
 

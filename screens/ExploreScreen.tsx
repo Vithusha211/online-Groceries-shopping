@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import { ExploreCategoryCard } from '../components/layout/Cards';
-import Footer, { FooterTab } from '../components/layout/Footer';
 import Header from '../components/layout/Header';
 import InputField from '../components/layout/InputField';
 import { EXPLORE_CATEGORIES } from '../constants/exploreCategories';
@@ -23,16 +22,12 @@ const screenWidth = Dimensions.get('window').width;
 const cardWidth = (screenWidth - HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
 
 export type ExploreScreenProps = {
-  activeTab?: FooterTab;
-  onTabPress?: (tab: FooterTab) => void;
   onCategoryPress?: (categoryId: string) => void;
   onSearchSubmit?: (query: string) => void;
   containerStyle?: ViewStyle;
 };
 
 export function ExploreScreen({
-  activeTab = 'explore',
-  onTabPress,
   onCategoryPress,
   onSearchSubmit,
   containerStyle,
@@ -90,8 +85,6 @@ export function ExploreScreen({
             ))}
           </View>
         </ScrollView>
-
-        <Footer activeTab={activeTab} onTabPress={onTabPress ?? (() => {})} />
       </InputField.Screen>
     </View>
   );
