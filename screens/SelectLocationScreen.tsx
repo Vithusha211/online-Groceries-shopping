@@ -38,7 +38,10 @@ const ZONES = ['Banasree', 'Gulshan', 'Dhanmondi', 'Uttara', 'Mirpur'] as const;
 
 export type SelectLocationScreenProps = {
   onBack?: () => void;
-  onSubmit?: (location: { zone: string; area: string }) => void;
+  onSubmit?: (location: {
+    zone: string;
+    area: string;
+  }) => void | Promise<void>;
   containerStyle?: ViewStyle;
 };
 
@@ -71,14 +74,20 @@ export function SelectLocationScreen({
   const [area, setArea] = useState('');
   const [zonePickerVisible, setZonePickerVisible] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!area.trim()) {
       showError(TOAST_MESSAGES.locationInvalid);
       return;
     }
 
-    showSuccess(TOAST_MESSAGES.locationSaved);
-    onSubmit?.({ zone, area: area.trim() });
+    try {
+      await onSubmit?.({ zone, area: area.trim() });
+      showSuccess(TOAST_MESSAGES.locationSaved);
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : TOAST_MESSAGES.locationInvalid,
+      );
+    }
   };
 
   const handleZoneSelect = (selectedZone: string) => {

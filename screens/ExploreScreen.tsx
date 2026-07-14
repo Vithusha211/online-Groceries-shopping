@@ -1,5 +1,6 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   ScrollView,
@@ -10,7 +11,11 @@ import {
 import { ExploreCategoryCard } from '../components/layout/Cards';
 import Header from '../components/layout/Header';
 import InputField from '../components/layout/InputField';
-import { EXPLORE_CATEGORIES } from '../constants/exploreCategories';
+import {
+  EXPLORE_CATEGORIES,
+  ExploreCategory,
+} from '../constants/exploreCategories';
+import { fetchCategories } from '../services/catalogService';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -33,6 +38,33 @@ export function ExploreScreen({
   containerStyle,
 }: ExploreScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] =
+    useState<ExploreCategory[]>(EXPLORE_CATEGORIES);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await fetchCategories();
+        if (!active || !data.length) return;
+        setCategories(
+          data.map((category) => ({
+            id: category.slug || category.id,
+            title: category.title,
+            iconName:
+              category.iconName as keyof typeof MaterialCommunityIcons.glyphMap,
+            iconColor: category.iconColor,
+            backgroundColor: category.backgroundColor,
+          })),
+        );
+      } catch {
+        // keep local fallback
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSearchSubmit = () => {
     const query = searchQuery.trim();
@@ -44,13 +76,13 @@ export function ExploreScreen({
   const filteredCategories = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) {
-      return EXPLORE_CATEGORIES;
+      return categories;
     }
 
-    return EXPLORE_CATEGORIES.filter((category) =>
+    return categories.filter((category) =>
       category.title.toLowerCase().includes(query),
     );
-  }, [searchQuery]);
+  }, [categories, searchQuery]);
 
   return (
     <View style={[styles.container, containerStyle]}>

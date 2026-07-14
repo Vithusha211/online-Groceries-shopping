@@ -1,9 +1,10 @@
-import { FontAwesome } from '@expo/vector-icons';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Image,
   ImageSourcePropType,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +24,7 @@ const COLORS = {
   google: '#5383EC',
   facebook: '#4A66AC',
   white: '#FFFFFF',
+  primary: '#53B175',
   blobPink: 'rgba(255, 167, 215, 0.28)',
   blobBlue: 'rgba(147, 197, 253, 0.28)',
   blobGreen: 'rgba(134, 239, 172, 0.2)',
@@ -31,11 +33,14 @@ const COLORS = {
 const HORIZONTAL_PADDING = 25;
 const BUTTON_HEIGHT = 67;
 const HERO_HEIGHT = 360;
+const FAB_SIZE = 67;
+const MIN_PHONE_DIGITS = 10;
 
 export type NumberSignInScreenProps = {
   onContinue?: (phone: string) => void;
   onGoogle?: () => void;
   onFacebook?: () => void;
+  onLogin?: () => void;
   backgroundSource?: ImageSourcePropType;
   containerStyle?: ViewStyle;
 };
@@ -44,82 +49,123 @@ export function NumberSignInScreen({
   onContinue,
   onGoogle,
   onFacebook,
+  onLogin,
   backgroundSource = require('../assets/welcome-bg.jpg'),
   containerStyle,
 }: NumberSignInScreenProps) {
   const insets = useSafeAreaInsets();
+  const phoneInputRef = useRef<TextInput>(null);
   const [phone, setPhone] = useState('');
+
+  const digitsOnly = phone.replace(/\D/g, '');
+  const canContinue = digitsOnly.length >= MIN_PHONE_DIGITS;
+
+  const handleContinue = () => {
+    if (!canContinue) {
+      phoneInputRef.current?.focus();
+      return;
+    }
+    onContinue?.(phone.trim());
+  };
 
   return (
     <View style={[styles.container, containerStyle]}>
       <StatusBar style="dark" />
 
       <InputField.Screen scrollable scrollContentContainerStyle={styles.scrollContent}>
-          <Image
-            resizeMode="cover"
-            source={backgroundSource}
-            style={styles.hero}
-          />
+        <Image
+          resizeMode="cover"
+          source={backgroundSource}
+          style={styles.hero}
+        />
 
-          <View
+        <View
+          style={[
+            styles.content,
+            { paddingBottom: Math.max(insets.bottom, 24) + 40 },
+          ]}
+        >
+          <View pointerEvents="none" style={styles.blobs}>
+            <View style={[styles.blob, styles.blobLeft]} />
+            <View style={[styles.blob, styles.blobRight]} />
+            <View style={[styles.blob, styles.blobBottom]} />
+          </View>
+
+          <Text style={styles.title}>Get your groceries{'\n'}with nectar</Text>
+
+          <Pressable
+            onPress={() => phoneInputRef.current?.focus()}
+            style={styles.phoneField}
+          >
+            <Text style={styles.flag}>🇧🇩</Text>
+            <Text style={styles.countryCode}>+880</Text>
+            <TextInput
+              ref={phoneInputRef}
+              autoCorrect={false}
+              keyboardType="phone-pad"
+              onChangeText={setPhone}
+              onSubmitEditing={handleContinue}
+              placeholder="Phone number"
+              placeholderTextColor={COLORS.muted}
+              returnKeyType="done"
+              style={styles.phoneInput}
+              value={phone}
+            />
+          </Pressable>
+
+          <TouchableOpacity
+            accessibilityLabel="Continue"
+            accessibilityRole="button"
+            activeOpacity={0.85}
+            disabled={!canContinue}
+            onPress={handleContinue}
             style={[
-              styles.content,
-              { paddingBottom: Math.max(insets.bottom, 24) + 40 },
+              styles.nextButton,
+              !canContinue && styles.nextButtonDisabled,
             ]}
           >
-            <View pointerEvents="none" style={styles.blobs}>
-              <View style={[styles.blob, styles.blobLeft]} />
-              <View style={[styles.blob, styles.blobRight]} />
-              <View style={[styles.blob, styles.blobBottom]} />
-            </View>
+            <Feather color={COLORS.white} name="chevron-right" size={28} />
+          </TouchableOpacity>
 
-            <Text style={styles.title}>Get your groceries{'\n'}with nectar</Text>
+          <Text style={styles.divider}>Or connect with social media</Text>
 
-            <View style={styles.phoneField}>
-              <Text style={styles.flag}>🇧🇩</Text>
-              <Text style={styles.countryCode}>+880</Text>
-              <TextInput
-                keyboardType="phone-pad"
-                onChangeText={setPhone}
-                onSubmitEditing={() => onContinue?.(phone)}
-                placeholder=""
-                style={styles.phoneInput}
-                value={phone}
-              />
-            </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            activeOpacity={0.85}
+            onPress={onGoogle}
+            style={[styles.socialButton, styles.googleButton]}
+          >
+            <FontAwesome
+              color={COLORS.white}
+              name="google"
+              size={20}
+              style={styles.socialIcon}
+            />
+            <Text style={styles.socialLabel}>Continue with Google</Text>
+          </TouchableOpacity>
 
-            <Text style={styles.divider}>Or connect with social media</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            activeOpacity={0.85}
+            onPress={onFacebook}
+            style={[styles.socialButton, styles.facebookButton]}
+          >
+            <FontAwesome
+              color={COLORS.white}
+              name="facebook"
+              size={22}
+              style={styles.socialIcon}
+            />
+            <Text style={styles.socialLabel}>Continue with Facebook</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              accessibilityRole="button"
-              activeOpacity={0.85}
-              onPress={onGoogle}
-              style={[styles.socialButton, styles.googleButton]}
-            >
-              <FontAwesome
-                color={COLORS.white}
-                name="google"
-                size={20}
-                style={styles.socialIcon}
-              />
-              <Text style={styles.socialLabel}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              accessibilityRole="button"
-              activeOpacity={0.85}
-              onPress={onFacebook}
-              style={[styles.socialButton, styles.facebookButton]}
-            >
-              <FontAwesome
-                color={COLORS.white}
-                name="facebook"
-                size={22}
-                style={styles.socialIcon}
-              />
-              <Text style={styles.socialLabel}>Continue with Facebook</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.loginHint}>
+            Already have an account?{' '}
+            <Text onPress={onLogin} style={styles.loginLink}>
+              Log In
+            </Text>
+          </Text>
+        </View>
       </InputField.Screen>
     </View>
   );
@@ -205,6 +251,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     padding: 0,
   },
+  nextButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: COLORS.primary,
+    borderRadius: FAB_SIZE / 2,
+    height: FAB_SIZE,
+    justifyContent: 'center',
+    marginTop: 24,
+    width: FAB_SIZE,
+  },
+  nextButtonDisabled: {
+    opacity: 0.4,
+  },
   divider: {
     color: COLORS.muted,
     fontSize: 14,
@@ -238,6 +297,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  loginHint: {
+    color: COLORS.muted,
+    fontSize: 14,
+    marginTop: 28,
+    textAlign: 'center',
+  },
+  loginLink: {
+    color: COLORS.title,
+    fontWeight: '600',
   },
 });
 

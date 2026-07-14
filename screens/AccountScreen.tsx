@@ -71,7 +71,7 @@ export type AccountScreenProps = {
   email?: string;
   onEditProfile?: () => void;
   onMenuPress?: (itemId: string) => void;
-  onLogout?: () => void;
+  onLogout?: () => void | Promise<void>;
   containerStyle?: ViewStyle;
 };
 
@@ -87,10 +87,14 @@ export function AccountScreen({
   const { showSuccess } = useToast();
   const [logoutVisible, setLogoutVisible] = useState(false);
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
     setLogoutVisible(false);
-    showSuccess(TOAST_MESSAGES.logoutSuccess);
-    onLogout?.();
+    try {
+      await onLogout?.();
+      showSuccess(TOAST_MESSAGES.logoutSuccess);
+    } catch {
+      showSuccess(TOAST_MESSAGES.logoutSuccess);
+    }
   };
 
   return (

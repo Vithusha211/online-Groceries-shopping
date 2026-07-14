@@ -29,7 +29,10 @@ const HORIZONTAL_PADDING = 25;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type LoginScreenProps = {
-  onLogin?: (credentials: { email: string; password: string }) => void;
+  onLogin?: (credentials: {
+    email: string;
+    password: string;
+  }) => void | Promise<void>;
   onForgotPassword?: () => void;
   onSignUp?: () => void;
   containerStyle?: ViewStyle;
@@ -45,8 +48,9 @@ export function LoginScreen({
   const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const trimmedEmail = email.trim();
     const isValid =
       EMAIL_REGEX.test(trimmedEmail) && password.trim().length >= 4;
@@ -56,8 +60,17 @@ export function LoginScreen({
       return;
     }
 
-    showSuccess(TOAST_MESSAGES.loginSuccess);
-    onLogin?.({ email: trimmedEmail, password });
+    try {
+      setSubmitting(true);
+      await onLogin?.({ email: trimmedEmail, password });
+      showSuccess(TOAST_MESSAGES.loginSuccess);
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : TOAST_MESSAGES.loginInvalid,
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -119,7 +132,7 @@ export function LoginScreen({
             <Button
               containerStyle={styles.loginButton}
               onPress={handleLogin}
-              title="Log In"
+              title={submitting ? 'Logging in...' : 'Log In'}
             />
           </View>
 

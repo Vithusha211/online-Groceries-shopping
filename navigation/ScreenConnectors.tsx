@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getProductDetail } from '../constants/products';
+import { useAuth } from '../context/AuthContext';
 import AccountScreen from '../screens/AccountScreen';
 import CartScreen from '../screens/CartScreen';
 import CategoryProductsScreen from '../screens/CategoryProductsScreen';
@@ -14,15 +16,22 @@ import LoginScreen from '../screens/LoginScreen';
 import MobileNumberScreen from '../screens/MobileNumberScreen';
 import NumberSignInScreen from '../screens/NumberSignInScreen';
 import OrderAcceptedScreen from '../screens/OrderAcceptedScreen';
-import ProductDetailScreen from '../screens/ProductDetailScreen';
+import ProductDetailScreen, {
+  ProductDetailData,
+} from '../screens/ProductDetailScreen';
 import SearchResultsScreen from '../screens/SearchResultsScreen';
 import SelectLocationScreen from '../screens/SelectLocationScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import VerificationScreen from '../screens/VerificationScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
+import { fetchProduct } from '../services/catalogService';
+import { toProductDetail } from '../services/mappers';
 import { useFilterContext } from './FilterContext';
 import { useFooterTabPress } from './hooks/useFooterTabPress';
-import { useMainStackNavigation, useRootNavigation } from './hooks/useMainStackNavigation';
+import {
+  useMainStackNavigation,
+  useRootNavigation,
+} from './hooks/useMainStackNavigation';
 import { useProductNavigation } from './hooks/useProductNavigation';
 import type {
   AuthStackParamList,
@@ -41,11 +50,22 @@ function useAuthFlowNavigation() {
 
 export function LoadingScreenConnector() {
   const navigation = useNavigation<AuthNavigation>();
+  const { goToMain } = useRootNavigation();
+  const { isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => navigation.replace('Welcome'), 2500);
+    if (isLoading) return;
+
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        goToMain();
+        return;
+      }
+      navigation.replace('Welcome');
+    }, 1200);
+
     return () => clearTimeout(timer);
-  }, [navigation]);
+  }, [goToMain, isAuthenticated, isLoading, navigation]);
 
   return <LoadingScreen />;
 }
@@ -62,6 +82,7 @@ export function NumberSignInScreenConnector() {
       onContinue={() => navigation.navigate('Mobile')}
       onFacebook={goToMain}
       onGoogle={goToMain}
+      onLogin={() => navigation.navigate('Login')}
     />
   );
 }
@@ -88,19 +109,31 @@ export function VerificationScreenConnector() {
 
 export function SelectLocationScreenConnector() {
   const { navigation, goToMain } = useAuthFlowNavigation();
+  const { isAuthenticated, saveLocation } = useAuth();
+
   return (
     <SelectLocationScreen
       onBack={() => navigation.goBack()}
-      onSubmit={goToMain}
+      onSubmit={async ({ zone, area }) => {
+        if (isAuthenticated) {
+          await saveLocation(zone, area);
+        }
+        goToMain();
+      }}
     />
   );
 }
 
 export function LoginScreenConnector() {
   const { navigation, goToMain } = useAuthFlowNavigation();
+  const { login } = useAuth();
+
   return (
     <LoginScreen
-      onLogin={goToMain}
+      onLogin={async ({ email, password }) => {
+        await login(email, password);
+        goToMain();
+      }}
       onSignUp={() => navigation.navigate('SignUp')}
     />
   );
@@ -108,10 +141,15 @@ export function LoginScreenConnector() {
 
 export function SignUpScreenConnector() {
   const { navigation, goToMain } = useAuthFlowNavigation();
+  const { signup } = useAuth();
+
   return (
     <SignUpScreen
       onLogin={() => navigation.navigate('Login')}
-      onSignUp={goToMain}
+      onSignUp={async ({ username, email, password }) => {
+        await signup(username, email, password);
+        goToMain();
+      }}
     />
   );
 }
@@ -146,9 +184,7 @@ export function SearchResultsScreenConnector() {
     <SearchResultsScreen
       onFilterPress={() => mainNavigation.navigate('Filters')}
       onProductPress={openProduct}
-      onQueryChange={(query) =>
-        navigation.setParams({ query })
-      }
+      onQueryChange={(query) => navigation.setParams({ query })}
       query={route.params.query}
     />
   );
@@ -156,7 +192,8 @@ export function SearchResultsScreenConnector() {
 
 export function CategoryProductsScreenConnector() {
   const navigation = useNavigation<ExploreNavigation>();
-  const route = useRoute<RouteProp<ExploreStackParamList, 'CategoryProducts'>>();
+  const route =
+    useRoute<RouteProp<ExploreStackParamList, 'CategoryProducts'>>();
   const mainNavigation = useMainStackNavigation();
   const openProduct = useProductNavigation();
 
@@ -186,26 +223,64 @@ export function CartScreenConnector() {
   const mainNavigation = useMainStackNavigation();
 
   return (
-    <CartScreen
-      onPlaceOrder={() => mainNavigation.navigate('OrderAccepted')}
-    />
+    <CartScreen onPlaceOrder={() => mainNavigation.navigate('OrderAccepted')} />
   );
 }
 
 export function AccountScreenConnector() {
   const { goToAuth } = useRootNavigation();
+  const { user, logout } = useAuth();
 
-  return <AccountScreen onLogout={goToAuth} />;
+  return (
+    <AccountScreen
+      email={user?.email}
+      name={user?.username}
+      onLogout={async () => {
+        await logout();
+        goToAuth();
+      }}
+    />
+  );
 }
 
 export function ProductDetailScreenConnector() {
   const mainNavigation = useMainStackNavigation();
   const route = useRoute<RouteProp<MainStackParamList, 'ProductDetail'>>();
+  const productId = route.params.productId;
+  const [product, setProduct] = useState<ProductDetailData | undefined>(
+    getProductDetail(productId),
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await fetchProduct(productId);
+        if (active) setProduct(toProductDetail(data));
+      } catch {
+        if (active) setProduct(getProductDetail(productId));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [productId]);
+
+  if (loading && !product) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color="#53B175" size="large" />
+      </View>
+    );
+  }
 
   return (
     <ProductDetailScreen
       onBack={() => mainNavigation.goBack()}
-      product={getProductDetail(route.params.productId)}
+      product={product}
     />
   );
 }
@@ -233,7 +308,5 @@ export function OrderAcceptedScreenConnector() {
     });
   };
 
-  return (
-    <OrderAcceptedScreen onBackHome={goHome} onTrackOrder={goHome} />
-  );
+  return <OrderAcceptedScreen onBackHome={goHome} onTrackOrder={goHome} />;
 }
