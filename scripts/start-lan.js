@@ -27,16 +27,19 @@ if (!ip) {
 }
 
 const port = '8081';
+const apiUrl = `http://${ip}:4000/api`;
 const expoUrl = `exp://${ip}:${port}`;
 
 console.log('');
 console.log('========================================');
 console.log('  Connect your phone to this URL:');
 console.log(`  ${expoUrl}`);
+console.log(`  API: ${apiUrl}`);
 console.log('========================================');
 console.log('');
 console.log('In Expo Go: tap "Enter URL manually" and paste the URL above.');
 console.log('Phone and PC must be on the same Wi-Fi network.');
+console.log('Make sure backend is running: cd backend && npm run dev');
 console.log('');
 
 const child = spawn(
@@ -46,6 +49,7 @@ const child = spawn(
     env: {
       ...process.env,
       REACT_NATIVE_PACKAGER_HOSTNAME: ip,
+      EXPO_PUBLIC_API_URL: apiUrl,
     },
     stdio: 'inherit',
     shell: true,

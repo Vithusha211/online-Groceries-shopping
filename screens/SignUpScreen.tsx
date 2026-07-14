@@ -31,7 +31,7 @@ export type SignUpScreenProps = {
     username: string;
     email: string;
     password: string;
-  }) => void;
+  }) => void | Promise<void>;
   onLogin?: () => void;
   onTermsPress?: () => void;
   onPrivacyPress?: () => void;
@@ -50,10 +50,11 @@ export function SignUpScreen({
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const isEmailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     const isValid =
       username.trim().length > 0 && isEmailValid && password.trim().length >= 4;
 
@@ -62,8 +63,21 @@ export function SignUpScreen({
       return;
     }
 
-    showSuccess(TOAST_MESSAGES.signUpSuccess);
-    onSignUp?.({ username, email, password });
+    try {
+      setSubmitting(true);
+      await onSignUp?.({
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
+      showSuccess(TOAST_MESSAGES.signUpSuccess);
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : TOAST_MESSAGES.signUpInvalid,
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -142,7 +156,7 @@ export function SignUpScreen({
             <Button
               containerStyle={styles.signUpButton}
               onPress={handleSignUp}
-              title="Sign Up"
+              title={submitting ? 'Signing up...' : 'Sign Up'}
             />
           </View>
 

@@ -21,6 +21,7 @@ import Header from '../components/layout/Header';
 import { ProductQuantityStepper } from '../components/layout/Cards';
 import { useToast } from '../components/layout/Toast';
 import { TOAST_MESSAGES } from '../constants/toastMessages';
+import { addCartItem, addFavourite, removeFavourite } from '../services/cartService';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -180,7 +181,7 @@ export function ProductDetailScreen({
   containerStyle,
 }: ProductDetailScreenProps) {
   const insets = useSafeAreaInsets();
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [detailExpanded, setDetailExpanded] = useState(true);
@@ -199,17 +200,34 @@ export function ProductDetailScreen({
     setActiveImageIndex(index);
   };
 
-  const handleAddToBasket = () => {
-    showSuccess(TOAST_MESSAGES.addToCart);
-    onAddToBasket?.(product, quantity);
+  const handleAddToBasket = async () => {
+    try {
+      await addCartItem(product.id, quantity);
+      showSuccess(TOAST_MESSAGES.addToCart);
+      onAddToBasket?.(product, quantity);
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : 'Could not add to cart',
+      );
+    }
   };
 
-  const handleToggleFavorite = () => {
-    setIsFavorite((current) => {
-      const next = !current;
-      showSuccess(next ? TOAST_MESSAGES.addFavorite : TOAST_MESSAGES.removeFavorite);
-      return next;
-    });
+  const handleToggleFavorite = async () => {
+    try {
+      if (isFavorite) {
+        await removeFavourite(product.id);
+        setIsFavorite(false);
+        showSuccess(TOAST_MESSAGES.removeFavorite);
+      } else {
+        await addFavourite(product.id);
+        setIsFavorite(true);
+        showSuccess(TOAST_MESSAGES.addFavorite);
+      }
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : 'Could not update favourite',
+      );
+    }
   };
 
   return (

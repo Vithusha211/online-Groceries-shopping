@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import { HomeHeader } from '../components/layout/Header';
 import InputField from '../components/layout/InputField';
 import PromoBanner from '../components/layout/PromoBanner';
 import { useToast } from '../components/layout/Toast';
+import { useAuth } from '../context/AuthContext';
 import { TOAST_MESSAGES } from '../constants/toastMessages';
 import {
   BEST_SELLING,
@@ -22,6 +24,9 @@ import {
   GROCERY_PRODUCTS,
   HomeProduct,
 } from '../constants/products';
+import { addCartItem } from '../services/cartService';
+import { fetchProducts } from '../services/catalogService';
+import { toHomeProduct } from '../services/mappers';
 
 const COLORS = {
   background: '#FFFFFF',
@@ -116,18 +121,74 @@ function ProductGrid({
 }
 
 export function HomeScreen({
-  location = 'Dhaka, Banassre',
+  location,
   onProductPress,
   containerStyle,
 }: HomeScreenProps) {
+  const { user, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const { showSuccess } = useToast();
+  const [exclusive, setExclusive] = useState<HomeProduct[]>(EXCLUSIVE_OFFERS);
+  const [bestSelling, setBestSelling] = useState<HomeProduct[]>(BEST_SELLING);
+  const [grocery, setGrocery] = useState<HomeProduct[]>(GROCERY_PRODUCTS);
+  const [loading, setLoading] = useState(true);
+  const { showSuccess, showError } = useToast();
+
+  const resolvedLocation =
+    location ??
+    (user?.location
+      ? `${user.location.zone}, ${user.location.area}`
+      : 'Dhaka, Banassre');
 
   const contentBottomPadding = useMemo(() => 24, []);
 
-  const handleAddToCart = () => {
-    showSuccess(TOAST_MESSAGES.addToCart);
-  };
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [exclusiveProducts, bestProducts, groceryProducts] =
+          await Promise.all([
+            fetchProducts({ section: 'exclusive' }),
+            fetchProducts({ section: 'bestSelling' }),
+            fetchProducts({ section: 'grocery' }),
+          ]);
+        if (!active) return;
+        if (exclusiveProducts.length) {
+          setExclusive(exclusiveProducts.map(toHomeProduct));
+        }
+        if (bestProducts.length) {
+          setBestSelling(bestProducts.map(toHomeProduct));
+        }
+        if (groceryProducts.length) {
+          setGrocery(groceryProducts.map(toHomeProduct));
+        }
+      } catch {
+        // Keep local fallbacks if API is offline
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleAddToCart = useCallback(
+    async (productId: string) => {
+      try {
+        if (!isAuthenticated) {
+          showError('Please log in to add items to cart');
+          return;
+        }
+        await addCartItem(productId, 1);
+        showSuccess(TOAST_MESSAGES.addToCart);
+      } catch (error) {
+        showError(
+          error instanceof Error ? error.message : 'Could not add to cart',
+        );
+      }
+    },
+    [isAuthenticated, showError, showSuccess],
+  );
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -135,66 +196,72 @@ export function HomeScreen({
 
       <InputField.Screen style={styles.keyboardView}>
         <HomeHeader
-          location={location}
+          location={resolvedLocation}
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
         />
 
-        <ScrollView
-          bounces
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: contentBottomPadding },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <PromoBanner />
-
-          <View style={styles.section}>
-            <SectionHeader title="Exclusive Offer" />
-            <ProductGrid
-              onAdd={handleAddToCart}
-              onProductPress={onProductPress}
-              products={EXCLUSIVE_OFFERS}
-            />
+        {loading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={COLORS.primary} size="large" />
           </View>
+        ) : (
+          <ScrollView
+            bounces
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: contentBottomPadding },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <PromoBanner />
 
-          <View style={styles.section}>
-            <SectionHeader title="Best Selling" />
-            <ProductGrid
-              onAdd={handleAddToCart}
-              onProductPress={onProductPress}
-              products={BEST_SELLING}
-            />
-          </View>
+            <View style={styles.section}>
+              <SectionHeader title="Exclusive Offer" />
+              <ProductGrid
+                onAdd={handleAddToCart}
+                onProductPress={onProductPress}
+                products={exclusive}
+              />
+            </View>
 
-          <View style={styles.section}>
-            <SectionHeader title="Groceries" />
-            <ScrollView
-              horizontal
-              contentContainerStyle={styles.categoryRow}
-              keyboardShouldPersistTaps="handled"
-              showsHorizontalScrollIndicator={false}
-            >
-              {GROCERY_CATEGORIES.map((category) => (
-                <CategoryCard
-                  key={category.id}
-                  backgroundColor={category.backgroundColor}
-                  containerStyle={styles.categoryCard}
-                  iconColor={category.iconColor}
-                  iconName={category.iconName}
-                  title={category.title}
-                />
-              ))}
-            </ScrollView>
-            <ProductGrid
-              onAdd={handleAddToCart}
-              onProductPress={onProductPress}
-              products={GROCERY_PRODUCTS}
-            />
-          </View>
-        </ScrollView>
+            <View style={styles.section}>
+              <SectionHeader title="Best Selling" />
+              <ProductGrid
+                onAdd={handleAddToCart}
+                onProductPress={onProductPress}
+                products={bestSelling}
+              />
+            </View>
+
+            <View style={styles.section}>
+              <SectionHeader title="Groceries" />
+              <ScrollView
+                horizontal
+                contentContainerStyle={styles.categoryRow}
+                keyboardShouldPersistTaps="handled"
+                showsHorizontalScrollIndicator={false}
+              >
+                {GROCERY_CATEGORIES.map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    backgroundColor={category.backgroundColor}
+                    containerStyle={styles.categoryCard}
+                    iconColor={category.iconColor}
+                    iconName={category.iconName}
+                    title={category.title}
+                  />
+                ))}
+              </ScrollView>
+              <ProductGrid
+                onAdd={handleAddToCart}
+                onProductPress={onProductPress}
+                products={grocery}
+              />
+            </View>
+          </ScrollView>
+        )}
       </InputField.Screen>
     </View>
   );
@@ -208,12 +275,17 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  loading: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
   scrollContent: {
-    flexGrow: 1,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 8,
   },
   section: {
     marginTop: 24,
-    paddingHorizontal: HORIZONTAL_PADDING,
   },
   sectionHeader: {
     alignItems: 'center',
@@ -223,12 +295,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: COLORS.title,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '600',
   },
   seeAll: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   productGrid: {
@@ -243,7 +315,7 @@ const styles = StyleSheet.create({
     paddingRight: HORIZONTAL_PADDING,
   },
   categoryCard: {
-    marginRight: 0,
+    width: 220,
   },
 });
 
